@@ -43,11 +43,11 @@ class GetContent {
         // $configs = $config->getConfig();
 
         // var_dump($configs);die();
-        $arr = explode('/', $url);
-        $name = $arr[count($arr) - 1];
-        if($name == ''){
-            $name = $arr[count($arr) - 2];
-        }
+        // $arr = explode('/', $url);
+        // $name = $arr[count($arr) - 1];
+        // if($name == ''){
+        //     $name = $arr[count($arr) - 2];
+        // }
         // $html = file_get_contents($url); // 可以优化为专门的 curl 方法
         $html = GetHtml::getUrl($url); // 可以优化为专门的 curl 方法
         // $configs = $this->configs;
@@ -56,22 +56,21 @@ class GetContent {
         // 判断 url 选择方法
         $content = '';
         $flag = '';
-        if (strpos($url, "segmentfault")) {
-            $rules = Config::getConfig('segmentfault');
-            $content = Segmentfault::getSegmentfault($html,$rules);
-            $flag = 'segmentfault';
-        } else if (strpos($url, "tuicool")) {
-            $rules = Config::getConfig('tuicool');
-            $content = Tuicool::getTuiku($html,$rules);
-            $flag = 'tuicool';
-        } else if (strpos($url, "cnblogs")) {
-            $rules = Config::getConfig('cnblogs');
-            $content = Cnblogs::getCnblogs($html,$rules);
-            $flag = 'cnblogs';
-            $name = explode(".", $name)[0];
+        // 不同的网站 详情页不同 需要分别处理
+        if (strpos($url, "leju")) {
+            // 处理 url 获取详情页
+
+            $rules = Config::getConfig('leju');
+            $ret = Leju::getLeju($html,$rules);
+            $flag = 'leju';
+        } else if (strpos($url, "loupan")) {
+            $rules = Config::getConfig('loupan');
+            $ret = Loupan::getLoupan($html,$rules);
+            $flag = 'loupan';
         }
-        if ($content) {
-            self::putContent($name, $content, $flag);
+        if ($ret) {
+            // 存入数据库 DB 类
+            // self::putContent($name, $content, $flag);
             echo ".";
             return 1;
         } else {
@@ -81,14 +80,68 @@ class GetContent {
 
     }
 
+    // 写入数据库
     private static function putContent($name, $content, $flag) {
-        $file = "../out/" . $flag . "/" . $flag . $name . ".md";
-        if (is_file($file)) {
-            unlink($file);
+        
+    }
+
+        // 用 sqllite 存储已抓取过的 url 
+    public static function getListUrl($url){
+        // 根据 url 中的关键字 判断采取何种 rule 
+        // 列表 list 收藏 bookmarks 页面总结 page 
+
+        // 还需要分页抓取 
+        
+        $keyword = self::getKeyWord($url);
+        
+        
+        // $configs = new Config();
+        $html = GetHtml::getUrl($url); // 获取下拉才会出现的 ajax 内容 未解决
+        // 分离列表项
+        // if (strpos($url, "segmentfault")) {
+        //     $rules = $configs->getListConfig('segmentfault');
+        // } else if (strpos($url, "tuicool")) {
+        //     $rules = $configs->getListConfig('tuicool');
+        // }
+
+        $rules = Config::getListConfig($keyword);
+        $prefixs = [
+            'leju' => '',
+            'loupan' => '',
+        ];
+        $prefix = $prefixs[$keyword];
+
+        $data = QueryList::html($html)->rules($rules)->query()->getData();
+        $ret = $data->all();
+        // echo $html;
+        // var_dump($ret);exit();
+        foreach ($ret as $val) {
+            $urls[] = $prefix . $val['url'];
         }
-        $fp = fopen($file, "a");
-        fwrite($fp, $content);
-        fclose($fp);
+        // 写入数据库 
+        return $urls;
+    }
+
+    public static function getKeyWord($url){
+        $arr = ['leju', 'loupan'];
+        $res = array_filter(array_map(function($val) use ($url){
+                                $rr = strpos($url, $val);
+                                if($rr!==false)
+                                    return $rr;
+                                else
+                                    return false;
+                            }, $arr), 
+                            function($v){
+                                  return $v!==false;  
+                            }, 
+                            ARRAY_FILTER_USE_BOTH
+        );
+        $ret = array_keys($res);
+        $key = array_shift($ret); // 取开头第一个元素
+        if($res){
+            return $arr[$key];
+        }
+        return 0;
     }
 
 }

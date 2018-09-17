@@ -5,6 +5,12 @@ namespace Tools;
 class Config{
     public static  function getConfig($str){
         $config = [
+
+            "leju" => array(
+                "title" => array("#articleTitle a", 'text'),
+                "source" => array("#articleTitle a", 'href'),
+                "body" => array(".article__content", 'html'),
+            ),
             "fang" => array(
                 "title" => array(".article_row_fluid h1", 'text'),
                 "source" => array(".article_meta .source a", 'text'),
@@ -33,14 +39,12 @@ class Config{
      */
     public static function getListConfig($name){
         $config = [
-            "tuicool" => array(
-                "url" => array(".single_simple span a", 'href')
+            "leju" => array(
+                "url" => array("#ZT_searchBox .b_card .b_titBox h2 a", 'href'),
+                "name" => array("", 'text'),
             ),
             "csdn" => array(
                 "url" => array(".article_row_fluid h1", 'text')
-            ),
-            "segmentfault" => array(
-                "url" => array(".summary h2 a", 'href')
             ),
             
         ];
